@@ -21,7 +21,7 @@ const App: React.FC = () => {
   const [selectedChat, setSelectedChat] = useState<Chat>(DUMMY_DATA[0]);
 
   return (
-    <div style={{ display: 'flex', height: '100vh', width: '100%', fontFamily: 'sans-serif' }}>
+    <div style={{ display: 'flex', height: '100vh', width: '100%', fontFamily: 'sans-serif', gap: '12px', padding: '12px', background: '#1a1a1a', boxSizing: 'border-box' }}>
       <Sidebar 
         chats={DUMMY_DATA} 
         activeChatId={selectedChat.id} 

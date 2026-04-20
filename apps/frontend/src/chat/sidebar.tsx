@@ -10,7 +10,9 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ chats, activeChatId, onSelectChat }) => {
   return (
     <div style={{ 
-      width: '25%', borderRight: '1px solid #ddd', display: 'flex', flexDirection: 'column' 
+      width: '25%', display: 'flex', flexDirection: 'column',
+      borderRadius: '16px', overflow: 'hidden',
+      background: '#1f1f1f', border: '1px solid #3b3b3b'
     }}>
       <div style={{ padding: '20px', fontSize: '1.5rem', fontWeight: 'bold' }}>Chats</div>
       
@@ -23,18 +25,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ chats, activeChatId, onSelectC
             style={{
               padding: '15px 20px',
               cursor: 'pointer',
-              backgroundColor: activeChatId === chat.id ? '#f0f0f0' : 'transparent',
-              borderBottom: '1px solid #eee'
+              backgroundColor: activeChatId === chat.id ? '#3b3b3b' : 'transparent',
+              borderBottom: '1px solid #3b3b3b'
             }}
           >
             <strong>{chat.name}</strong>
-            <div style={{ fontSize: '0.8rem', color: '#666' }}>{chat.lastMessage}</div>
+            <div style={{ fontSize: '0.8rem', color: '#9e9e9e' }}>{chat.lastMessage}</div>
           </div>
         ))}
       </div>
 
       {/* Settings Box */}
-      <div style={{ padding: '20px', borderTop: '1px solid #ddd', background: '#fafafa' }}>
+      <div style={{ padding: '20px', borderTop: '1px solid #3b3b3b', background: '#1f1f1f' }}>
         <button onClick={() => alert('Muted!')}>Mute 🔕</button>
         <button style={{ marginLeft: '10px' }}>Settings ⚙️</button>
       </div>

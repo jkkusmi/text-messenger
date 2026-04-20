@@ -19,14 +19,14 @@ export const ChatWindow: React.FC<{ chat: Chat }> = ({ chat }) => {
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRadius: '16px', overflow: 'hidden', background: '#1f1f1f', border: '1px solid #3b3b3b' }}>
       {/* Header */}
-      <div style={{ padding: '20px', borderBottom: '1px solid #ddd' }}>
+      <div style={{ padding: '20px', borderBottom: '1px solid #3b3b3b' }}>
         <h2>{chat.name}</h2>
       </div>
 
       {/* Message List */}
-      <div style={{ flex: 1, padding: '20px', overflowY: 'auto', background: '#fff' }}>
+      <div style={{ flex: 1, padding: '20px', overflowY: 'auto', background: '#1f1f1f' }}>
         {chat.messages.map(m => {
           const isMine = m.sender === CURRENT_USER;
           return (
@@ -46,7 +46,7 @@ export const ChatWindow: React.FC<{ chat: Chat }> = ({ chat }) => {
               )}
               <div
                 style={{
-                  background: isMine ? '#dcf8c6' : '#f1f0f0',
+                  background: isMine ? '#1165f7' : '#4c4c4c',
                   padding: '10px 14px',
                   borderRadius: isMine ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
                   maxWidth: '65%',
@@ -55,7 +55,7 @@ export const ChatWindow: React.FC<{ chat: Chat }> = ({ chat }) => {
               >
                 {m.text}
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#999', marginTop: '4px' }}>
+              <div style={{ fontSize: '0.75rem', color: '#909090', marginTop: '4px' }}>
                 {m.timestamp}
               </div>
             </div>
@@ -64,14 +64,14 @@ export const ChatWindow: React.FC<{ chat: Chat }> = ({ chat }) => {
       </div>
 
       {/* Input Area */}
-      <div style={{ padding: '20px', borderTop: '1px solid #ddd', display: 'flex', gap: '10px' }}>
+      <div style={{ padding: '20px', borderTop: '1px solid #3b3b3b', display: 'flex', gap: '10px' }}>
         <input
           type="text"
           value={inputText}
           onChange={e => setInputText(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Type a message..."
-          style={{ flex: 1, padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }}
+          style={{ flex: 1, padding: '10px', borderRadius: '4px', border: '1px solid #3b3b3b' }}
         />
         <button onClick={handleSend} style={{ padding: '10px 20px' }}>Send</button>
       </div>
