@@ -8,7 +8,7 @@ const DUMMY_DATA: Chat[] = [
     id: '1', name: 'Rozmowa grupowa', lastMessage: 'Druga wiadomość', 
     messages: [
       { id: 'm1', sender: 'Piotr', text: 'Pierwsza wiadomość', timestamp: '10:00' },
-      { id: 'm2', sender: 'Jan', text: 'Druga Wiadomośc', timestamp: '10:12' }
+      { id: 'm2', sender: 'Jan', text: 'Druga Wiadomość', timestamp: '10:12' }
     ] 
   },
   { 

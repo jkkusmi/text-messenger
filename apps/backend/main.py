@@ -14,7 +14,6 @@ def get_password():
 app = FastAPI()
 password = get_password()
 
-print("Password: '"+password+"'")
 connection = psycopg2.connect(database="textmessenger_db", user="app_user", password=password, host="localhost", port=5432)
 
 @app.get("/")
@@ -50,13 +49,13 @@ async def get_profile():
     raise NotImplementedError
 
 @app.post("/u")
-async def register():
+async def create_user():
     raise NotImplementedError
 
 @app.put("/u")
-async def get_profile(id: int):
+async def update_profile(id: int):
     raise NotImplementedError
 
 @app.delete("/u")
-async def register(id: int):
+async def delete_user(id: int):
     raise NotImplementedError
