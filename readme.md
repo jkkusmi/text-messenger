@@ -1,7 +1,7 @@
 # Text Messenger
 Architektura i komunikacja między systemami i bazami danych
-* [Jakub Kuśmierek](github.com/jkkusmi/) (51798)
-* Bartosz Kurach (51787)
+* [Jakub Kuśmierek](https://www.github.com/jkkusmi/) (51798)
+* [Bartosz Kurach](https://www.github.com/kapsiu/) (51787)
 
 ### ⚙️ Starting up
 * Backend (`./apps/backend`)
