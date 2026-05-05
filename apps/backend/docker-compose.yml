@@ -10,7 +10,11 @@ services:
     ports:
       - "5432:5432"
     volumes:
+      # Persists cluster data; delete this volume (see `docker compose down -v`) to re-run
+      # docker-entrypoint-initdb.d scripts on next `up`.
       - pgdata:/var/lib/postgresql/data
+      # Scripts here run only when the data directory is empty (first init).
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d:ro
 
 volumes:
   pgdata:

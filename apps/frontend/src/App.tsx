@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
+import { AuthForm } from './auth/AuthForm';
 import { Sidebar } from './chat/sidebar';
 import { ChatWindow } from './chat/ChatWindow';
 import type { Chat } from './chat/types';
 import './chat/chat.css';
+
+const ACCESS_TOKEN_KEY = 'textmessenger_access_token';
 
 const DUMMY_DATA: Chat[] = [
   {
@@ -19,7 +22,24 @@ const DUMMY_DATA: Chat[] = [
 ];
 
 const App: React.FC = () => {
+  const [accessToken, setAccessToken] = useState<string | null>(() =>
+    localStorage.getItem(ACCESS_TOKEN_KEY),
+  );
   const [selectedChat, setSelectedChat] = useState<Chat>(DUMMY_DATA[0]);
+
+  function onAuthed(token: string) {
+    localStorage.setItem(ACCESS_TOKEN_KEY, token);
+    setAccessToken(token);
+  }
+
+  function logout() {
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    setAccessToken(null);
+  }
+
+  if (!accessToken) {
+    return <AuthForm onAuthed={onAuthed} />;
+  }
 
   return (
     <div className="app-shell">
