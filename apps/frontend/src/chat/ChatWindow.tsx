@@ -1,15 +1,20 @@
 import React, { useState } from 'react';
-import type { Chat } from "./types";
+import type { Chat } from './types';
+import { CURRENT_USER } from './constants';
 
-// TODO: replace with the authenticated user's name once auth is implemented
-const CURRENT_USER = 'Piotr';
+const SendIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="5" y1="12" x2="19" y2="12" />
+    <polyline points="13 6 19 12 13 18" />
+  </svg>
+);
 
 export const ChatWindow: React.FC<{ chat: Chat }> = ({ chat }) => {
   const [inputText, setInputText] = useState('');
 
   const handleSend = () => {
     if (!inputText.trim()) return;
-    // TODO: call POST /m on the backend here
+    // TODO: call POST /m on the backend
     console.log('Sending:', inputText);
     setInputText('');
   };
@@ -19,61 +24,36 @@ export const ChatWindow: React.FC<{ chat: Chat }> = ({ chat }) => {
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRadius: '16px', overflow: 'hidden', background: '#1f1f1f', border: '1px solid #3b3b3b' }}>
-      {/* Header */}
-      <div style={{ padding: '20px', borderBottom: '1px solid #3b3b3b' }}>
+    <div className="chat-window">
+      <div className="chat-window__header">
         <h2>{chat.name}</h2>
       </div>
 
-      {/* Message List */}
-      <div style={{ flex: 1, padding: '20px', overflowY: 'auto', background: '#1f1f1f' }}>
+      <div className="chat-window__messages">
         {chat.messages.map(m => {
           const isMine = m.sender === CURRENT_USER;
           return (
-            <div
-              key={m.id}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: isMine ? 'flex-end' : 'flex-start',
-                marginBottom: '15px',
-              }}
-            >
-              {!isMine && (
-                <div style={{ fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '4px' }}>
-                  {m.sender}
-                </div>
-              )}
-              <div
-                style={{
-                  background: isMine ? '#1165f7' : '#4c4c4c',
-                  padding: '10px 14px',
-                  borderRadius: isMine ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                  maxWidth: '65%',
-                  wordBreak: 'break-word',
-                }}
-              >
-                {m.text}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: '#909090', marginTop: '4px' }}>
-                {m.timestamp}
-              </div>
+            <div key={m.id} className={`message ${isMine ? 'message--mine' : 'message--theirs'}`}>
+              {!isMine && <div className="message__sender">{m.sender}</div>}
+              <div className="message__bubble">{m.text}</div>
+              <div className="message__timestamp">{m.timestamp}</div>
             </div>
           );
         })}
       </div>
 
-      {/* Input Area */}
-      <div style={{ padding: '20px', borderTop: '1px solid #3b3b3b', display: 'flex', gap: '10px' }}>
+      <div className="chat-window__input-area">
         <input
           type="text"
+          className="chat-window__input"
           value={inputText}
           onChange={e => setInputText(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Type a message..."
-          style={{ flex: 1, padding: '10px', borderRadius: '4px', border: '1px solid #3b3b3b' }}
         />
-        <button onClick={handleSend} style={{ padding: '10px 20px' }}>Send</button>
+        <button className="icon-btn icon-btn--send" onClick={handleSend} title="Send">
+          <SendIcon />
+        </button>
       </div>
     </div>
   );
