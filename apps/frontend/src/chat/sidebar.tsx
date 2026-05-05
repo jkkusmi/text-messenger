@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Chat } from './types';
+import { CURRENT_USER } from './constants';
 
 interface SidebarProps {
   chats: Chat[];
@@ -7,38 +8,65 @@ interface SidebarProps {
   onSelectChat: (chat: Chat) => void;
 }
 
+function avatarColor(name: string): string {
+  const palette = ['#1165f7', '#9333ea', '#16a34a', '#dc2626', '#d97706', '#0891b2', '#db2777'];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return palette[Math.abs(hash) % palette.length];
+}
+
+function initials(name: string): string {
+  return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+}
+
+const MuteIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="2" y1="2" x2="22" y2="22" />
+    <path d="M18.89 13.23A7.12 7.12 0 0 0 19 12v-2" />
+    <path d="M5 10v2a7 7 0 0 0 12 5" />
+    <path d="M15 9.34V5a3 3 0 0 0-5.68-1.33" />
+    <path d="M9 9v3" />
+    <line x1="12" y1="19" x2="12" y2="22" />
+  </svg>
+);
+
+const SettingsIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+  </svg>
+);
+
 export const Sidebar: React.FC<SidebarProps> = ({ chats, activeChatId, onSelectChat }) => {
   return (
-    <div style={{ 
-      width: '25%', display: 'flex', flexDirection: 'column',
-      borderRadius: '16px', overflow: 'hidden',
-      background: '#1f1f1f', border: '1px solid #3b3b3b'
-    }}>
-      <div style={{ padding: '20px', fontSize: '1.5rem', fontWeight: 'bold' }}>Chats</div>
-      
-      {/* Dynamic Chat List */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+    <div className="sidebar">
+      <div className="sidebar__title">Chats</div>
+
+      <div className="sidebar__list">
         {chats.map(chat => (
-          <div 
+          <div
             key={chat.id}
             onClick={() => onSelectChat(chat)}
-            style={{
-              padding: '15px 20px',
-              cursor: 'pointer',
-              backgroundColor: activeChatId === chat.id ? '#3b3b3b' : 'transparent',
-              borderBottom: '1px solid #3b3b3b'
-            }}
+            className={`sidebar__item${activeChatId === chat.id ? ' sidebar__item--active' : ''}`}
           >
-            <strong>{chat.name}</strong>
-            <div style={{ fontSize: '0.8rem', color: '#9e9e9e' }}>{chat.lastMessage}</div>
+            <div className="sidebar__item-avatar" style={{ background: avatarColor(chat.name) }}>
+              {initials(chat.name)}
+            </div>
+            <div className="sidebar__item-info">
+              <div className="sidebar__item-name">{chat.name}</div>
+              <div className="sidebar__item-preview">{chat.lastMessage}</div>
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Settings Box */}
-      <div style={{ padding: '20px', borderTop: '1px solid #3b3b3b', background: '#1f1f1f' }}>
-        <button onClick={() => alert('Muted!')}>Mute 🔕</button>
-        <button style={{ marginLeft: '10px' }}>Settings ⚙️</button>
+      <div className="sidebar__footer">
+        <div className="sidebar__user-avatar">{initials(CURRENT_USER)}</div>
+        <span className="sidebar__user-name">{CURRENT_USER}</span>
+        <div className="sidebar__footer-actions">
+          <button className="icon-btn" title="Mute"><MuteIcon /></button>
+          <button className="icon-btn" title="Settings"><SettingsIcon /></button>
+        </div>
       </div>
     </div>
   );

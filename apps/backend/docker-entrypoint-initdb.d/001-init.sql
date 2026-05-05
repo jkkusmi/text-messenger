@@ -1,56 +1,61 @@
--- !!VERY!! BASIC DRAFT, CHANGE LATER
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- Runs once on first Postgres startup when the data volume is empty.
+-- Requires: POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB in .env (see docker-compose).
+-- Reset DB: docker compose down -v && docker compose up -d
 
--- USERS
+-- USERS (auth: password_hash = bcrypt of client SHA-256 hex digest of UTF-8 password)
 CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username TEXT NOT NULL UNIQUE,
     email TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
 -- CHATS
 CREATE TABLE chats (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     is_group BOOLEAN NOT NULL DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
--- CHAT PARTICIPANTS (many-to-many: users <-> chats)
+-- Many-to-many: users <-> chats
 CREATE TABLE chat_participants (
-    chat_id UUID REFERENCES chats(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    joined_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    chat_id UUID NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    joined_at TIMESTAMPTZ DEFAULT now() NOT NULL,
     PRIMARY KEY (chat_id, user_id)
 );
 
 -- MESSAGES
 CREATE TABLE messages (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     chat_id UUID NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
     sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     content TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
--- INDEXES
 CREATE INDEX idx_messages_chat_id ON messages(chat_id);
 CREATE INDEX idx_messages_sender_id ON messages(sender_id);
 CREATE INDEX idx_chat_participants_user_id ON chat_participants(user_id);
 
--- OPTIONAL CONSTRAINT: enforce DM = max 2 participants
+-- Direct chats (is_group = false): at most two participants
 CREATE OR REPLACE FUNCTION enforce_dm_participant_limit()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
 BEGIN
-    IF (SELECT is_group FROM chats WHERE id = NEW.chat_id) = false THEN
-        IF (SELECT COUNT(*) FROM chat_participants WHERE chat_id = NEW.chat_id) >= 2 THEN
+    IF EXISTS (
+        SELECT 1 FROM chats c
+        WHERE c.id = NEW.chat_id AND c.is_group = false
+    ) THEN
+        IF (SELECT COUNT(*)::int FROM chat_participants WHERE chat_id = NEW.chat_id) >= 2 THEN
             RAISE EXCEPTION 'Direct chats can only have two participants';
         END IF;
     END IF;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 CREATE TRIGGER trg_dm_limit
 BEFORE INSERT ON chat_participants
