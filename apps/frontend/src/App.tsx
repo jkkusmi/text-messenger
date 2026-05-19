@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AuthForm } from './auth/AuthForm';
+import { fetchCurrentProfile } from './api/client';
 import { Sidebar } from './chat/sidebar';
 import { ChatWindow } from './chat/ChatWindow';
-import type { Chat } from './chat/types';
+import type { Chat, Profile } from './chat/types';
 import './chat/chat.css';
 
 const ACCESS_TOKEN_KEY = 'textmessenger_access_token';
@@ -25,6 +26,9 @@ const App: React.FC = () => {
   const [accessToken, setAccessToken] = useState<string | null>(() =>
     localStorage.getItem(ACCESS_TOKEN_KEY),
   );
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
   const [selectedChat, setSelectedChat] = useState<Chat>(DUMMY_DATA[0]);
 
   function onAuthed(token: string) {
@@ -35,10 +39,58 @@ const App: React.FC = () => {
   function logout() {
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     setAccessToken(null);
+    setProfile(null);
+    setProfileError(null);
   }
+
+  useEffect(() => {
+    if (!accessToken) {
+      setProfile(null);
+      setProfileError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setProfileLoading(true);
+    setProfileError(null);
+
+    fetchCurrentProfile(accessToken)
+      .then((p) => {
+        if (!cancelled) setProfile(p);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : 'Failed to load profile';
+        setProfileError(message);
+        setProfile(null);
+        if (message.toLowerCase().includes('not authenticated') || message.includes('401')) {
+          logout();
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setProfileLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken]);
 
   if (!accessToken) {
     return <AuthForm onAuthed={onAuthed} />;
+  }
+
+  if (profileLoading) {
+    return <p>Loading profile…</p>;
+  }
+
+  if (profileError || !profile) {
+    return (
+      <div>
+        <p role="alert">{profileError ?? 'Profile unavailable'}</p>
+        <button type="button" onClick={logout}>Sign out</button>
+      </div>
+    );
   }
 
   return (
@@ -48,8 +100,9 @@ const App: React.FC = () => {
           chats={DUMMY_DATA}
           activeChatId={selectedChat.id}
           onSelectChat={setSelectedChat}
+          profile={profile}
         />
-        <ChatWindow chat={selectedChat} />
+        <ChatWindow chat={selectedChat} currentProfile={profile} />
       </div>
     </div>
   );

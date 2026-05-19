@@ -1,11 +1,11 @@
 import React from 'react';
-import type { Chat } from './types';
-import { CURRENT_USER } from './constants';
+import type { Chat, Profile } from './types';
 
 interface SidebarProps {
   chats: Chat[];
   activeChatId: string;
   onSelectChat: (chat: Chat) => void;
+  profile: Profile;
 }
 
 function avatarColor(name: string): string {
@@ -37,7 +37,8 @@ const SettingsIcon = () => (
   </svg>
 );
 
-export const Sidebar: React.FC<SidebarProps> = ({ chats, activeChatId, onSelectChat }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ chats, activeChatId, onSelectChat, profile }) => {
+  const displayLabel = profile.display_name ?? profile.username;
   return (
     <div className="sidebar">
       <div className="sidebar__title">Chats</div>
@@ -61,8 +62,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ chats, activeChatId, onSelectC
       </div>
 
       <div className="sidebar__footer">
-        <div className="sidebar__user-avatar">{initials(CURRENT_USER)}</div>
-        <span className="sidebar__user-name">{CURRENT_USER}</span>
+        <div className="sidebar__user-avatar">{initials(displayLabel)}</div>
+        <span className="sidebar__user-name">{displayLabel}</span>
         <div className="sidebar__footer-actions">
           <button className="icon-btn" title="Mute"><MuteIcon /></button>
           <button className="icon-btn" title="Settings"><SettingsIcon /></button>

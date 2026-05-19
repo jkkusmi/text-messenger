@@ -1,11 +1,12 @@
 import os
 from datetime import datetime, timedelta, timezone
+from typing import Annotated
 
 import bcrypt
 import psycopg2
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from jose import jwt
+from jose import JWTError, jwt
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from psycopg2 import errors as pg_errors
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -175,6 +176,47 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user_id: str
+    profile_id: str
+
+
+class ProfileResponse(BaseModel):
+    id: str
+    account_id: str
+    username: str
+    display_name: str | None
+    bio: str | None
+
+
+def get_bearer_token(authorization: Annotated[str | None, Header()] = None) -> str:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return authorization[7:]
+
+
+def get_account_id(token: Annotated[str, Depends(get_bearer_token)]) -> str:
+    try:
+        payload = jwt.decode(token, jwt_secret, algorithms=[JWT_ALGORITHM])
+        sub = payload.get("sub")
+        if not sub:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return str(sub)
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token") from None
+
+
+def get_profile_id(account_id: str) -> str:
+    cur = connection.cursor()
+    try:
+        cur.execute(
+            "SELECT id FROM profiles WHERE account_id = %s",
+            (account_id,),
+        )
+        row = cur.fetchone()
+    finally:
+        cur.close()
+    if not row:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    return str(row[0])
 
 
 @app.get("/")
@@ -185,17 +227,28 @@ async def root():
 @app.post("/auth/register", response_model=TokenResponse)
 def register(body: RegisterRequest):
     password_hash = hash_password_digest(body.password_digest)
+    username = body.username.strip()
     cur = connection.cursor()
     try:
         cur.execute(
             """
-            INSERT INTO users (username, email, password_hash)
+            INSERT INTO accounts (username, email, password_hash)
             VALUES (%s, %s, %s)
             RETURNING id
             """,
-            (body.username.strip(), str(body.email).lower(), password_hash),
+            (username, str(body.email).lower(), password_hash),
         )
-        row = cur.fetchone()
+        account_row = cur.fetchone()
+        account_id = account_row[0]
+        cur.execute(
+            """
+            INSERT INTO profiles (account_id, display_name)
+            VALUES (%s, %s)
+            RETURNING id
+            """,
+            (account_id, username),
+        )
+        profile_row = cur.fetchone()
         connection.commit()
     except pg_errors.UniqueViolation as e:
         connection.rollback()
@@ -212,9 +265,14 @@ def register(body: RegisterRequest):
     finally:
         cur.close()
 
-    user_id = str(row[0])
-    token = create_access_token(user_id)
-    return TokenResponse(access_token=token, user_id=user_id)
+    account_id_str = str(account_id)
+    profile_id_str = str(profile_row[0])
+    token = create_access_token(account_id_str)
+    return TokenResponse(
+        access_token=token,
+        user_id=account_id_str,
+        profile_id=profile_id_str,
+    )
 
 
 @app.post("/auth/login", response_model=TokenResponse)
@@ -223,7 +281,10 @@ def login(body: LoginRequest):
     try:
         cur.execute(
             """
-            SELECT id, password_hash FROM users WHERE email = %s
+            SELECT a.id, a.password_hash, p.id
+            FROM accounts a
+            JOIN profiles p ON p.account_id = a.id
+            WHERE a.email = %s
             """,
             (str(body.email).lower(),),
         )
@@ -234,13 +295,18 @@ def login(body: LoginRequest):
     if not row:
         verify_password_digest(body.password_digest, _DUMMY_VERIFIER_HASH)
         raise HTTPException(status_code=401, detail="Invalid email or password")
-    user_id_db, stored_hash = row
+    account_id_db, stored_hash, profile_id_db = row
     if not verify_password_digest(body.password_digest, stored_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    user_id = str(user_id_db)
-    token = create_access_token(user_id)
-    return TokenResponse(access_token=token, user_id=user_id)
+    account_id = str(account_id_db)
+    profile_id = str(profile_id_db)
+    token = create_access_token(account_id)
+    return TokenResponse(
+        access_token=token,
+        user_id=account_id,
+        profile_id=profile_id,
+    )
 
 
 @app.get("/m")
@@ -263,9 +329,33 @@ async def delete_message(id: int):
     raise NotImplementedError
 
 
-@app.get("/u")
-async def get_profile():
-    raise NotImplementedError
+@app.get("/u", response_model=ProfileResponse)
+def get_profile(account_id: Annotated[str, Depends(get_account_id)]):
+    cur = connection.cursor()
+    try:
+        cur.execute(
+            """
+            SELECT p.id, p.account_id, a.username, p.display_name, p.bio
+            FROM profiles p
+            JOIN accounts a ON a.id = p.account_id
+            WHERE p.account_id = %s
+            """,
+            (account_id,),
+        )
+        row = cur.fetchone()
+    finally:
+        cur.close()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    return ProfileResponse(
+        id=str(row[0]),
+        account_id=str(row[1]),
+        username=row[2],
+        display_name=row[3],
+        bio=row[4],
+    )
 
 
 @app.post("/u")

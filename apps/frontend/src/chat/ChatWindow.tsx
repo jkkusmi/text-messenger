@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import type { Chat } from './types';
-import { CURRENT_USER } from './constants';
+import type { Chat, Profile } from './types';
 
 const SendIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -9,8 +8,12 @@ const SendIcon = () => (
   </svg>
 );
 
-export const ChatWindow: React.FC<{ chat: Chat }> = ({ chat }) => {
+export const ChatWindow: React.FC<{ chat: Chat; currentProfile: Profile }> = ({
+  chat,
+  currentProfile,
+}) => {
   const [inputText, setInputText] = useState('');
+  const me = currentProfile.display_name ?? currentProfile.username;
 
   const handleSend = () => {
     if (!inputText.trim()) return;
@@ -31,7 +34,7 @@ export const ChatWindow: React.FC<{ chat: Chat }> = ({ chat }) => {
 
       <div className="chat-window__messages">
         {chat.messages.map(m => {
-          const isMine = m.sender === CURRENT_USER;
+          const isMine = m.sender === me;
           return (
             <div key={m.id} className={`message ${isMine ? 'message--mine' : 'message--theirs'}`}>
               {!isMine && <div className="message__sender">{m.sender}</div>}

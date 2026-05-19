@@ -1,3 +1,11 @@
+export interface Profile {
+  id: string;
+  account_id: string;
+  username: string;
+  display_name: string | null;
+  bio: string | null;
+}
+
 export interface Message {
   id: string;
   sender: string;
