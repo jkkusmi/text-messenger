@@ -6,6 +6,7 @@ interface SidebarProps {
   activeChatId: string;
   onSelectChat: (chat: Chat) => void;
   profile: Profile;
+  onLogout: () => void;
 }
 
 function avatarColor(name: string): string {
@@ -30,6 +31,15 @@ const MuteIcon = () => (
   </svg>
 );
 
+// TODO: revert color to currentColor, make highlight red on hover instead.
+const LogoutIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="red" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <polyline points="16 17 21 12 16 7" />
+    <line x1="21" y1="12" x2="9" y2="12" />
+  </svg>
+);
+
 const SettingsIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="3" />
@@ -37,7 +47,13 @@ const SettingsIcon = () => (
   </svg>
 );
 
-export const Sidebar: React.FC<SidebarProps> = ({ chats, activeChatId, onSelectChat, profile }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  chats,
+  activeChatId,
+  onSelectChat,
+  profile,
+  onLogout,
+}) => {
   const displayLabel = profile.display_name ?? profile.username;
   return (
     <div className="sidebar">
@@ -67,6 +83,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ chats, activeChatId, onSelectC
         <div className="sidebar__footer-actions">
           <button className="icon-btn" title="Mute"><MuteIcon /></button>
           <button className="icon-btn" title="Settings"><SettingsIcon /></button>
+          <button type="button" className="icon-btn" title="Sign out" onClick={onLogout}><LogoutIcon /></button>
         </div>
       </div>
     </div>

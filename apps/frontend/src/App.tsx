@@ -101,6 +101,7 @@ const App: React.FC = () => {
           activeChatId={selectedChat.id}
           onSelectChat={setSelectedChat}
           profile={profile}
+          onLogout={logout}
         />
         <ChatWindow chat={selectedChat} currentProfile={profile} />
       </div>
