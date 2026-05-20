@@ -7,6 +7,7 @@ interface SidebarProps {
   onSelectChat: (chat: Chat) => void;
   profile: Profile;
   onLogout: () => void;
+  onOpenSettings: () => void;
 }
 
 function avatarColor(name: string): string {
@@ -53,6 +54,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectChat,
   profile,
   onLogout,
+  onOpenSettings,
 }) => {
   const displayLabel = profile.display_name ?? profile.username;
   return (
@@ -82,7 +84,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <span className="sidebar__user-name">{displayLabel}</span>
         <div className="sidebar__footer-actions">
           <button className="icon-btn" title="Mute"><MuteIcon /></button>
-          <button className="icon-btn" title="Settings"><SettingsIcon /></button>
+          <button type="button" className="icon-btn" title="Settings" onClick={onOpenSettings}>
+            <SettingsIcon />
+          </button>
           <button type="button" className="icon-btn" title="Sign out" onClick={onLogout}><LogoutIcon /></button>
         </div>
       </div>

@@ -187,6 +187,11 @@ class ProfileResponse(BaseModel):
     bio: str | None
 
 
+class UpdateProfileRequest(BaseModel):
+    display_name: str | None = None
+    bio: str | None = None
+
+
 def get_bearer_token(authorization: Annotated[str | None, Header()] = None) -> str:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -363,14 +368,80 @@ async def create_user():
     raise NotImplementedError
 
 
-@app.put("/u")
-async def update_profile(id: int):
-    raise NotImplementedError
+@app.put("/u", response_model=ProfileResponse)
+def update_profile(
+    body: UpdateProfileRequest,
+    account_id: Annotated[str, Depends(get_account_id)],
+):
+    display_name = body.display_name.strip() if body.display_name and body.display_name.strip() else None
+    bio = body.bio
+    if bio is not None and not bio.strip():
+        bio = None
+
+    cur = connection.cursor()
+    try:
+        cur.execute(
+            """
+            UPDATE profiles
+            SET display_name = %s, bio = %s, updated_at = now()
+            WHERE account_id = %s
+            """,
+            (display_name, bio, account_id),
+        )
+        if cur.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        connection.commit()
+        cur.execute(
+            """
+            SELECT p.id, p.account_id, a.username, p.display_name, p.bio
+            FROM profiles p
+            JOIN accounts a ON a.id = p.account_id
+            WHERE p.account_id = %s
+            """,
+            (account_id,),
+        )
+        row = cur.fetchone()
+    except HTTPException:
+        connection.rollback()
+        raise
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        cur.close()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    return ProfileResponse(
+        id=str(row[0]),
+        account_id=str(row[1]),
+        username=row[2],
+        display_name=row[3],
+        bio=row[4],
+    )
 
 
-@app.delete("/u")
-async def delete_user(id: int):
-    raise NotImplementedError
+@app.delete("/u", status_code=204)
+def delete_account(account_id: Annotated[str, Depends(get_account_id)]):
+    cur = connection.cursor()
+    try:
+        cur.execute(
+            "DELETE FROM accounts WHERE id = %s",
+            (account_id,),
+        )
+        if cur.rowcount == 0:
+            connection.rollback()
+            raise HTTPException(status_code=404, detail="Account not found")
+        connection.commit()
+    except HTTPException:
+        connection.rollback()
+        raise
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        cur.close()
 
 
 if __name__ == "__main__":

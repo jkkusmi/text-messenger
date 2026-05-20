@@ -3,6 +3,7 @@ import { AuthForm } from './auth/AuthForm';
 import { fetchCurrentProfile } from './api/client';
 import { Sidebar } from './chat/sidebar';
 import { ChatWindow } from './chat/ChatWindow';
+import { ProfileSettingsModal } from './chat/ProfileSettingsModal';
 import type { Chat, Profile } from './chat/types';
 import './chat/chat.css';
 
@@ -30,6 +31,7 @@ const App: React.FC = () => {
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [selectedChat, setSelectedChat] = useState<Chat>(DUMMY_DATA[0]);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   function onAuthed(token: string) {
     localStorage.setItem(ACCESS_TOKEN_KEY, token);
@@ -102,8 +104,20 @@ const App: React.FC = () => {
           onSelectChat={setSelectedChat}
           profile={profile}
           onLogout={logout}
+          onOpenSettings={() => setSettingsOpen(true)}
         />
         <ChatWindow chat={selectedChat} currentProfile={profile} />
+        <ProfileSettingsModal
+          open={settingsOpen}
+          profile={profile}
+          accessToken={accessToken}
+          onClose={() => setSettingsOpen(false)}
+          onSaved={setProfile}
+          onDeleteAccount={() => {
+            setSettingsOpen(false);
+            logout();
+          }}
+        />
       </div>
     </div>
   );
