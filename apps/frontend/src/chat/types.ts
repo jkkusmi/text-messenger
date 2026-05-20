@@ -6,16 +6,25 @@ export interface Profile {
   bio: string | null;
 }
 
+export interface ChatSummary {
+  id: string;
+  name: string;
+  isGroup: boolean;
+  lastMessage: string | null;
+  lastMessageAt?: string | null;
+}
+
 export interface Message {
   id: string;
+  senderId: string;
   sender: string;
   text: string;
   timestamp: string;
 }
 
-export interface Chat {
+export interface ChatDetail {
   id: string;
   name: string;
-  lastMessage: string;
+  isGroup: boolean;
   messages: Message[];
 }

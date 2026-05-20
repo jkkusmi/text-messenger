@@ -64,6 +64,20 @@
   transition: background 0.12s;
 }
 
+.sidebar__item--add {
+  background: var(--bg-bubble-out);
+  text-align: center; 
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--border);
+  color: #fff;
+  padding: 9px 10px;
+  margin: 4px;
+  border-radius: 16px;
+  cursor: pointer;
+}
+
 .sidebar__item:hover   { background: var(--bg-hover); }
 .sidebar__item--active { background: var(--bg-active); }
 
@@ -539,4 +553,49 @@
 .rich-editor__area ol {
   margin: 0.4em 0;
   padding-left: 1.4em;
+}
+
+.sidebar__empty {
+  padding: 12px 16px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.sidebar__empty--error {
+  color: #dc2626;
+}
+
+.chat-window--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.chat-window__status {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.chat-window__status--error {
+  color: #dc2626;
+}
+
+.chat-window__send-error {
+  padding: 4px 16px 0;
+  font-size: 0.75rem;
+  color: #dc2626;
+}
+
+.create-chat__hint {
+  margin-bottom: 0;
+}
+
+.create-chat__input {
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
 }

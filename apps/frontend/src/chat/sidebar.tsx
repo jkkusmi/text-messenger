@@ -1,10 +1,13 @@
 import React from 'react';
-import type { Chat, Profile } from './types';
+import type { ChatSummary, Profile } from './types';
 
 interface SidebarProps {
-  chats: Chat[];
-  activeChatId: string;
-  onSelectChat: (chat: Chat) => void;
+  chats: ChatSummary[];
+  chatsLoading?: boolean;
+  chatsError?: string | null;
+  activeChatId: string | null;
+  onSelectChat: (chatId: string) => void;
+  onOpenAddChat: () => void;
   profile: Profile;
   onLogout: () => void;
   onOpenSettings: () => void;
@@ -50,8 +53,11 @@ const SettingsIcon = () => (
 
 export const Sidebar: React.FC<SidebarProps> = ({
   chats,
+  chatsLoading,
+  chatsError,
   activeChatId,
   onSelectChat,
+  onOpenAddChat,
   profile,
   onLogout,
   onOpenSettings,
@@ -62,21 +68,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="sidebar__title">Chats</div>
 
       <div className="sidebar__list">
-        {chats.map(chat => (
-          <div
-            key={chat.id}
-            onClick={() => onSelectChat(chat)}
-            className={`sidebar__item${activeChatId === chat.id ? ' sidebar__item--active' : ''}`}
-          >
-            <div className="sidebar__item-avatar" style={{ background: avatarColor(chat.name) }}>
-              {initials(chat.name)}
+        <button
+          type="button"
+          className="sidebar__item sidebar__item--add"
+          onClick={onOpenAddChat}
+        >
+          Add chat
+        </button>
+        {chatsLoading ? (
+          <p className="sidebar__empty">Loading chats…</p>
+        ) : chatsError ? (
+          <p className="sidebar__empty sidebar__empty--error" role="alert">{chatsError}</p>
+        ) : chats.length === 0 ? (
+          <p className="sidebar__empty">No chats yet. Add one to get started.</p>
+        ) : (
+          chats.map(chat => (
+            <div
+              key={chat.id}
+              onClick={() => onSelectChat(chat.id)}
+              className={`sidebar__item${activeChatId === chat.id ? ' sidebar__item--active' : ''}`}
+            >
+              <div className="sidebar__item-avatar" style={{ background: avatarColor(chat.name) }}>
+                {initials(chat.name)}
+              </div>
+              <div className="sidebar__item-info">
+                <div className="sidebar__item-name">{chat.name}</div>
+                <div className="sidebar__item-preview">
+                  {chat.lastMessage ?? 'No messages yet'}
+                </div>
+              </div>
             </div>
-            <div className="sidebar__item-info">
-              <div className="sidebar__item-name">{chat.name}</div>
-              <div className="sidebar__item-preview">{chat.lastMessage}</div>
-            </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       <div className="sidebar__footer">
