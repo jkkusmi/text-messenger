@@ -84,7 +84,7 @@ export const CreateChatModal: React.FC<CreateChatModalProps> = ({
             New chat
           </h2>
           <button type="button" className="modal__close icon-btn" title="Close" onClick={onClose}>
-            ×
+            <span>×</span>
           </button>
         </header>
 
@@ -100,7 +100,7 @@ export const CreateChatModal: React.FC<CreateChatModalProps> = ({
               className="profile-settings__input create-chat__input"
               value={usernamesText}
               onChange={(e) => setUsernamesText(e.target.value)}
-              placeholder="alice&#10;bob, carol"
+              placeholder={'alice\nbob, carol'}
               rows={4}
               autoFocus
             />

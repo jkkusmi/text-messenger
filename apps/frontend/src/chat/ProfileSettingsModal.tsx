@@ -102,7 +102,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
             Profile settings
           </h2>
           <button type="button" className="modal__close icon-btn" title="Close" onClick={onClose}>
-            ×
+            <span>×</span>
           </button>
         </header>
 

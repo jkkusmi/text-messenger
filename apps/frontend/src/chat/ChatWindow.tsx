@@ -1,13 +1,7 @@
 import React, { useState } from 'react';
 import { sendMessage } from '../api/client';
 import type { Message, Profile } from './types';
-
-const SendIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="5" y1="12" x2="19" y2="12" />
-    <polyline points="13 6 19 12 13 18" />
-  </svg>
-);
+import { SendIcon } from './icons';
 
 interface ChatWindowProps {
   chatId: string | null;
@@ -106,6 +100,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           disabled={sending || loading}
         />
         <button
+          type="button"
           className="icon-btn icon-btn--send"
           onClick={() => void handleSend()}
           title="Send"
