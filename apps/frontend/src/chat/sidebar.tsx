@@ -7,6 +7,7 @@ interface SidebarProps {
   chatsLoading?: boolean;
   chatsError?: string | null;
   activeChatId: string | null;
+  updatedSummaryChatIds?: Set<string>;
   onSelectChat: (chatId: string) => void;
   onOpenAddChat: () => void;
   profile: Profile;
@@ -30,6 +31,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   chatsLoading,
   chatsError,
   activeChatId,
+  updatedSummaryChatIds,
   onSelectChat,
   onOpenAddChat,
   profile,
@@ -71,7 +73,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
               <div className="sidebar__item-info">
                 <div className="sidebar__item-name">{chat.name}</div>
-                <div className="sidebar__item-preview">
+                <div
+                  className={`sidebar__item-preview${updatedSummaryChatIds?.has(chat.id) ? ' sidebar__item-preview--updated' : ''}`}
+                >
                   {chat.lastMessage ?? 'No messages yet'}
                 </div>
               </div>

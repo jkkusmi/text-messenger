@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { sendMessage } from '../api/client';
 import type { Message, Profile } from './types';
 import { SendIcon } from './icons';
@@ -24,9 +24,36 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   accessToken,
   onMessageSent,
 }) => {
+  const [localMessages, setLocalMessages] = useState<Message[]>([]);
+  const [unreadIds, setUnreadIds] = useState<Set<string>>(() => new Set());
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLocalMessages([]);
+    setUnreadIds(new Set());
+    setSendError(null);
+  }, [chatId]);
+
+  useEffect(() => {
+    if (loading || !chatId) return;
+
+    setLocalMessages((prev) => {
+      if (prev.length === 0) return messages;
+
+      const prevIds = new Set(prev.map((m) => m.id));
+      const newIds = messages.filter((m) => !prevIds.has(m.id)).map((m) => m.id);
+      if (newIds.length > 0) {
+        setUnreadIds((u) => {
+          const next = new Set(u);
+          for (const id of newIds) next.add(id);
+          return next;
+        });
+      }
+      return messages;
+    });
+  }, [chatId, loading, messages]);
 
   const handleSend = async () => {
     if (!chatId || !inputText.trim() || sending) return;
@@ -69,13 +96,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           <p className="chat-window__status">Loading messages…</p>
         ) : error ? (
           <p className="chat-window__status chat-window__status--error" role="alert">{error}</p>
-        ) : messages.length === 0 ? (
+        ) : localMessages.length === 0 ? (
           <p className="chat-window__status">No messages yet. Say hello!</p>
         ) : (
-          messages.map(m => {
+          localMessages.map(m => {
             const isMine = m.senderId === currentProfile.id;
+            const isUnread = unreadIds.has(m.id);
             return (
-              <div key={m.id} className={`message ${isMine ? 'message--mine' : 'message--theirs'}`}>
+              <div
+                key={m.id}
+                className={`message ${isMine ? 'message--mine' : 'message--theirs'}${isUnread ? ' message--unread' : ''}`}
+              >
                 {!isMine && <div className="message__sender">{m.sender}</div>}
                 <div className="message__bubble">{m.text}</div>
                 <div className="message__timestamp">{m.timestamp}</div>

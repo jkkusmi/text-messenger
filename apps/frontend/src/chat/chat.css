@@ -139,6 +139,11 @@
   text-overflow: ellipsis;
 }
 
+.sidebar__item-preview--updated {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 .sidebar__footer {
   padding: 10px 12px;
   border-top: 1px solid var(--border);
@@ -291,6 +296,11 @@
   background: var(--bg-bubble-in);
   color: var(--text-primary);
   border-radius: 16px 16px 16px 4px;
+}
+
+.message--unread .message__bubble {
+  color: #fff;
+  font-weight: 600;
 }
 
 .message__timestamp {

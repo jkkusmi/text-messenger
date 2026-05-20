@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AuthForm } from './auth/AuthForm';
 import { fetchChat, fetchChats, fetchCurrentProfile } from './api/client';
 import { Sidebar } from './chat/sidebar';
@@ -9,6 +9,11 @@ import type { ChatDetail, ChatSummary, Profile } from './chat/types';
 import './chat/chat.css';
 
 const ACCESS_TOKEN_KEY = 'textmessenger_access_token';
+const CHATS_POLL_INTERVAL_MS = 4000;
+
+function summarySnapshotKey(lastMessageAt: string | null | undefined): string {
+  return lastMessageAt ?? '';
+}
 
 const App: React.FC = () => {
   const [accessToken, setAccessToken] = useState<string | null>(() =>
@@ -21,6 +26,7 @@ const App: React.FC = () => {
   const [chats, setChats] = useState<ChatSummary[]>([]);
   const [chatsLoading, setChatsLoading] = useState(false);
   const [chatsError, setChatsError] = useState<string | null>(null);
+  const [chatCache, setChatCache] = useState<Record<string, ChatDetail>>({});
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [activeChat, setActiveChat] = useState<ChatDetail | null>(null);
   const [chatLoading, setChatLoading] = useState(false);
@@ -28,6 +34,12 @@ const App: React.FC = () => {
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [createChatOpen, setCreateChatOpen] = useState(false);
+  const [sidebarUpdatedIds, setSidebarUpdatedIds] = useState<Set<string>>(() => new Set());
+
+  const summarySnapshotRef = useRef<Record<string, string>>({});
+  const selectedChatIdRef = useRef<string | null>(null);
+  const chatsPollInFlight = useRef(false);
+  selectedChatIdRef.current = selectedChatId;
 
   function onAuthed(token: string) {
     localStorage.setItem(ACCESS_TOKEN_KEY, token);
@@ -40,20 +52,89 @@ const App: React.FC = () => {
     setProfile(null);
     setProfileError(null);
     setChats([]);
+    setChatCache({});
+    summarySnapshotRef.current = {};
+    setSidebarUpdatedIds(new Set());
     setSelectedChatId(null);
     setActiveChat(null);
   }
 
-  const refreshChats = useCallback(async (token: string) => {
+  const mergeIntoCache = useCallback((details: ChatDetail[]) => {
+    if (details.length === 0) return;
+    setChatCache((prev) => {
+      const next = { ...prev };
+      for (const d of details) next[d.id] = d;
+      return next;
+    });
+  }, []);
+
+  const fetchChatDetails = useCallback(
+    async (token: string, chatIds: string[]) => {
+      const unique = [...new Set(chatIds)];
+      if (unique.length === 0) return [];
+      const details = await Promise.all(unique.map((id) => fetchChat(token, id)));
+      mergeIntoCache(details);
+      return details;
+    },
+    [mergeIntoCache],
+  );
+
+  const syncChatList = useCallback(async (token: string) => {
     const list = await fetchChats(token);
     setChats(list);
+    for (const c of list) {
+      if (!(c.id in summarySnapshotRef.current)) {
+        summarySnapshotRef.current[c.id] = summarySnapshotKey(c.lastMessageAt);
+      }
+    }
     return list;
   }, []);
 
-  const refreshActiveChat = useCallback(async (token: string, chatId: string) => {
-    const detail = await fetchChat(token, chatId);
-    setActiveChat(detail);
-    return detail;
+  const syncChatsAndMessages = useCallback(
+    async (token: string) => {
+      const list = await fetchChats(token);
+      setChats(list);
+
+      const idsToFetch: string[] = [];
+      const summaryUpdatedIds: string[] = [];
+      const activeId = selectedChatIdRef.current;
+      for (const c of list) {
+        const snapshot = summarySnapshotKey(c.lastMessageAt);
+        const prevSnapshot = summarySnapshotRef.current[c.id];
+        if (prevSnapshot !== snapshot) {
+          idsToFetch.push(c.id);
+          summarySnapshotRef.current[c.id] = snapshot;
+          if (c.id !== activeId) {
+            summaryUpdatedIds.push(c.id);
+          }
+        }
+      }
+
+      if (summaryUpdatedIds.length > 0) {
+        setSidebarUpdatedIds((prev) => {
+          const next = new Set(prev);
+          for (const id of summaryUpdatedIds) next.add(id);
+          return next;
+        });
+      }
+
+      if (idsToFetch.length > 0) {
+        await fetchChatDetails(token, idsToFetch);
+      }
+
+      return list;
+    },
+    [fetchChatDetails],
+  );
+
+  const handleSelectChat = useCallback((chatId: string) => {
+    setSelectedChatId(chatId);
+    setSidebarUpdatedIds((prev) => {
+      if (!prev.has(chatId)) return prev;
+      const next = new Set(prev);
+      next.delete(chatId);
+      return next;
+    });
   }, []);
 
   useEffect(() => {
@@ -96,11 +177,11 @@ const App: React.FC = () => {
     setChatsLoading(true);
     setChatsError(null);
 
-    refreshChats(accessToken)
+    syncChatList(accessToken)
       .then((list) => {
         if (cancelled) return;
         if (list.length > 0 && !selectedChatId) {
-          setSelectedChatId(list[0].id);
+          handleSelectChat(list[0].id);
         }
       })
       .catch((err: unknown) => {
@@ -115,7 +196,33 @@ const App: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [accessToken, profile, refreshChats]);
+  }, [accessToken, profile, syncChatList, handleSelectChat, selectedChatId]);
+
+  useEffect(() => {
+    if (!accessToken || !profile || chatsLoading) return;
+
+    const token = accessToken;
+    let cancelled = false;
+
+    async function poll() {
+      if (chatsPollInFlight.current || cancelled) return;
+      chatsPollInFlight.current = true;
+      try {
+        await syncChatsAndMessages(token);
+      } catch {
+        /* ignore transient poll errors */
+      } finally {
+        chatsPollInFlight.current = false;
+      }
+    }
+
+    void poll();
+    const intervalId = window.setInterval(() => void poll(), CHATS_POLL_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [accessToken, profile, chatsLoading, syncChatsAndMessages]);
 
   useEffect(() => {
     if (!accessToken || !selectedChatId) {
@@ -123,11 +230,24 @@ const App: React.FC = () => {
       return;
     }
 
+    const cached = chatCache[selectedChatId];
+    if (cached) {
+      setActiveChat(cached);
+      setChatError(null);
+      setChatLoading(false);
+      return;
+    }
+
     let cancelled = false;
     setChatLoading(true);
     setChatError(null);
 
-    refreshActiveChat(accessToken, selectedChatId)
+    fetchChat(accessToken, selectedChatId)
+      .then((detail) => {
+        if (cancelled) return;
+        mergeIntoCache([detail]);
+        setActiveChat(detail);
+      })
       .catch((err: unknown) => {
         if (!cancelled) {
           setChatError(err instanceof Error ? err.message : 'Failed to load chat');
@@ -141,15 +261,18 @@ const App: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [accessToken, selectedChatId, refreshActiveChat]);
+  }, [accessToken, selectedChatId, chatCache, mergeIntoCache]);
+
+  useEffect(() => {
+    if (!selectedChatId) return;
+    const cached = chatCache[selectedChatId];
+    if (cached) setActiveChat(cached);
+  }, [selectedChatId, chatCache]);
 
   async function handleMessageSent() {
     if (!accessToken || !selectedChatId) return;
     try {
-      await Promise.all([
-        refreshChats(accessToken),
-        refreshActiveChat(accessToken, selectedChatId),
-      ]);
+      await syncChatsAndMessages(accessToken);
     } catch (err: unknown) {
       setChatError(err instanceof Error ? err.message : 'Failed to refresh chat');
     }
@@ -157,10 +280,11 @@ const App: React.FC = () => {
 
   async function handleChatCreated(detail: ChatDetail) {
     if (!accessToken) return;
-    setSelectedChatId(detail.id);
+    handleSelectChat(detail.id);
     setActiveChat(detail);
+    mergeIntoCache([detail]);
     try {
-      await refreshChats(accessToken);
+      await syncChatsAndMessages(accessToken);
     } catch (err: unknown) {
       setChatsError(err instanceof Error ? err.message : 'Failed to refresh chats');
     }
@@ -194,7 +318,8 @@ const App: React.FC = () => {
           chatsLoading={chatsLoading}
           chatsError={chatsError}
           activeChatId={selectedChatId}
-          onSelectChat={setSelectedChatId}
+          updatedSummaryChatIds={sidebarUpdatedIds}
+          onSelectChat={handleSelectChat}
           profile={profile}
           onLogout={logout}
           onOpenSettings={() => setSettingsOpen(true)}
