@@ -1,5 +1,5 @@
 import { API_BASE_URL } from '../config';
-import type { ChatDetail, ChatSummary, Message, Profile } from '../chat/types';
+import type { ChatDetail, ChatSummary, Message, Profile, PublicProfile } from '../chat/types';
 
 function formatMessageTime(iso: string): string {
   const d = new Date(iso);
@@ -9,6 +9,7 @@ function formatMessageTime(iso: string): string {
 type ApiMessage = {
   id: string;
   sender_id: string;
+  sender_username: string;
   sender_label: string;
   content: string;
   created_at: string;
@@ -33,6 +34,7 @@ function mapMessage(m: ApiMessage): Message {
   return {
     id: m.id,
     senderId: m.sender_id,
+    senderUsername: m.sender_username,
     sender: m.sender_label,
     text: m.content,
     timestamp: formatMessageTime(m.created_at),
@@ -88,6 +90,20 @@ export async function fetchCurrentProfile(token: string): Promise<Profile> {
     throw new Error(await errorMessageFromResponse(res));
   }
   return res.json() as Promise<Profile>;
+}
+
+export async function fetchProfileByUsername(
+  token: string,
+  username: string,
+): Promise<PublicProfile> {
+  const encoded = encodeURIComponent(username);
+  const res = await fetch(`${API_BASE_URL}/u/${encoded}`, {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) {
+    throw new Error(await errorMessageFromResponse(res));
+  }
+  return res.json() as Promise<PublicProfile>;
 }
 
 export type UpdateProfilePayload = {

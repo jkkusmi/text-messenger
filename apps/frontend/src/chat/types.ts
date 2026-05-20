@@ -6,6 +6,13 @@ export interface Profile {
   bio: string | null;
 }
 
+export interface PublicProfile {
+  id: string;
+  username: string;
+  display_name: string | null;
+  bio: string | null;
+}
+
 export interface ChatSummary {
   id: string;
   name: string;
@@ -17,6 +24,7 @@ export interface ChatSummary {
 export interface Message {
   id: string;
   senderId: string;
+  senderUsername: string;
   sender: string;
   text: string;
   timestamp: string;

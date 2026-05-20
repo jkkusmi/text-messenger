@@ -5,6 +5,7 @@ import { Sidebar } from './chat/sidebar';
 import { ChatWindow } from './chat/ChatWindow';
 import { CreateChatModal } from './chat/CreateChatModal';
 import { ProfileSettingsModal } from './chat/ProfileSettingsModal';
+import { UserProfileModal } from './chat/UserProfileModal';
 import type { ChatDetail, ChatSummary, Profile } from './chat/types';
 import './chat/chat.css';
 
@@ -34,6 +35,8 @@ const App: React.FC = () => {
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [createChatOpen, setCreateChatOpen] = useState(false);
+  const [userProfileOpen, setUserProfileOpen] = useState(false);
+  const [viewedUsername, setViewedUsername] = useState<string | null>(null);
   const [sidebarUpdatedIds, setSidebarUpdatedIds] = useState<Set<string>>(() => new Set());
 
   const summarySnapshotRef = useRef<Record<string, string>>({});
@@ -309,6 +312,21 @@ const App: React.FC = () => {
 
   const activeSummary = chats.find((c) => c.id === selectedChatId);
   const chatName = activeChat?.name ?? activeSummary?.name ?? '';
+  const currentUser = profile;
+
+  function openUserProfile(username: string) {
+    if (username === currentUser.username) {
+      setSettingsOpen(true);
+      return;
+    }
+    setViewedUsername(username);
+    setUserProfileOpen(true);
+  }
+
+  function closeUserProfile() {
+    setUserProfileOpen(false);
+    setViewedUsername(null);
+  }
 
   return (
     <div className="app-shell">
@@ -334,6 +352,7 @@ const App: React.FC = () => {
           currentProfile={profile}
           accessToken={accessToken}
           onMessageSent={handleMessageSent}
+          onViewProfile={openUserProfile}
         />
         <ProfileSettingsModal
           open={settingsOpen}
@@ -351,6 +370,12 @@ const App: React.FC = () => {
           accessToken={accessToken}
           onClose={() => setCreateChatOpen(false)}
           onCreated={handleChatCreated}
+        />
+        <UserProfileModal
+          open={userProfileOpen}
+          username={viewedUsername}
+          accessToken={accessToken}
+          onClose={closeUserProfile}
         />
       </div>
     </div>

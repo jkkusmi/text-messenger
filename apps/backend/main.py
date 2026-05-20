@@ -187,6 +187,13 @@ class ProfileResponse(BaseModel):
     bio: str | None
 
 
+class PublicProfileResponse(BaseModel):
+    id: str
+    username: str
+    display_name: str | None
+    bio: str | None
+
+
 class UpdateProfileRequest(BaseModel):
     display_name: str | None = None
     bio: str | None = None
@@ -195,6 +202,7 @@ class UpdateProfileRequest(BaseModel):
 class MessageResponse(BaseModel):
     id: str
     sender_id: str
+    sender_username: str
     sender_label: str
     content: str
     created_at: str
@@ -323,16 +331,17 @@ def row_to_message(row) -> MessageResponse:
     return MessageResponse(
         id=str(row[0]),
         sender_id=str(row[1]),
-        sender_label=row[2],
-        content=row[3],
-        created_at=_iso(row[4]),
+        sender_username=row[2],
+        sender_label=row[3],
+        content=row[4],
+        created_at=_iso(row[5]),
     )
 
 
 def load_chat_messages(cur, chat_id: str) -> list[MessageResponse]:
     cur.execute(
         """
-        SELECT m.id, m.sender_id,
+        SELECT m.id, m.sender_id, a.username,
                COALESCE(p.display_name, a.username) AS sender_label,
                m.content, m.created_at
         FROM messages m
@@ -608,18 +617,19 @@ def send_message(
         msg_id, created_at = cur.fetchone()
         cur.execute(
             """
-            SELECT COALESCE(p.display_name, a.username)
+            SELECT a.username, COALESCE(p.display_name, a.username)
             FROM profiles p
             JOIN accounts a ON a.id = p.account_id
             WHERE p.id = %s
             """,
             (profile_id,),
         )
-        sender_label = cur.fetchone()[0]
+        sender_username, sender_label = cur.fetchone()
         connection.commit()
         return MessageResponse(
             id=str(msg_id),
             sender_id=profile_id,
+            sender_username=sender_username,
             sender_label=sender_label,
             content=content,
             created_at=_iso(created_at),
@@ -637,6 +647,42 @@ def send_message(
 @app.delete("/m")
 async def delete_message():
     raise NotImplementedError
+
+
+@app.get("/u/{username}", response_model=PublicProfileResponse)
+def get_profile_by_username(
+    username: str,
+    account_id: Annotated[str, Depends(get_account_id)],
+):
+    del account_id  # auth only; any signed-in user may view profiles by username
+    lookup = username.strip()
+    if not lookup:
+        raise HTTPException(status_code=400, detail="Username cannot be empty")
+
+    cur = connection.cursor()
+    try:
+        cur.execute(
+            """
+            SELECT p.id, a.username, p.display_name, p.bio
+            FROM profiles p
+            JOIN accounts a ON a.id = p.account_id
+            WHERE a.username = %s
+            """,
+            (lookup,),
+        )
+        row = cur.fetchone()
+    finally:
+        cur.close()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return PublicProfileResponse(
+        id=str(row[0]),
+        username=row[1],
+        display_name=row[2],
+        bio=row[3],
+    )
 
 
 @app.get("/u", response_model=ProfileResponse)

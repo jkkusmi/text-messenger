@@ -12,6 +12,7 @@ interface ChatWindowProps {
   currentProfile: Profile;
   accessToken: string;
   onMessageSent: () => void | Promise<void>;
+  onViewProfile: (username: string) => void;
 }
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({
@@ -23,6 +24,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   currentProfile,
   accessToken,
   onMessageSent,
+  onViewProfile,
 }) => {
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const [unreadIds, setUnreadIds] = useState<Set<string>>(() => new Set());
@@ -107,7 +109,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                 key={m.id}
                 className={`message ${isMine ? 'message--mine' : 'message--theirs'}${isUnread ? ' message--unread' : ''}`}
               >
-                {!isMine && <div className="message__sender">{m.sender}</div>}
+                {!isMine && (
+                  <button
+                    type="button"
+                    className="message__sender"
+                    onClick={() => onViewProfile(m.senderUsername)}
+                  >
+                    {m.sender}
+                  </button>
+                )}
                 <div className="message__bubble">{m.text}</div>
                 <div className="message__timestamp">{m.timestamp}</div>
               </div>

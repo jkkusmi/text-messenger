@@ -271,11 +271,22 @@
 .message--theirs { align-items: flex-start; }
 
 .message__sender {
+  font: inherit;
   font-size: 0.7rem;
   font-weight: 600;
   color: var(--text-secondary);
   margin-bottom: 4px;
   padding: 0 4px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.12s;
+}
+
+.message__sender:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
 }
 
 .message__bubble {
@@ -515,6 +526,37 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.profile-view__body {
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-view__status {
+  margin: 0;
+  font-size: 0.825rem;
+  color: var(--text-secondary);
+}
+
+.profile-view__value {
+  margin: 0;
+  font-size: 0.825rem;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.profile-view__value--muted {
+  color: var(--text-secondary);
+}
+
+.profile-view__bio {
+  min-height: auto;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-input);
+  pointer-events: none;
 }
 
 .profile-settings__separator {
