@@ -280,7 +280,7 @@ def build_chat_name(cur, chat_id: str, my_profile_id: str, is_group: bool) -> st
     rows = cur.fetchall()
     labels = [profile_label(r[0], r[1]) for r in rows]
     if not is_group:
-        return labels[0] if labels else "Unknown"
+        return labels[0] if labels else "Deleted user"
     return ", ".join(labels)
 
 
